@@ -241,6 +241,7 @@
   .prow { padding: 6px 0; border-top: 1px solid var(--line-2); }
   .prow .in { height: 34px; }
   .pf { display: block; min-width: 0; }
+  .p-more { display: none !important; }
   .pf .pk { display: none; }
   .prow .p-rate .in, .prow .p-qty .in { font-family: var(--mono); text-align: right; }
   .p-act { display: flex; gap: 2px; justify-content: flex-end; }
@@ -350,10 +351,12 @@
     .form > .hint { grid-column: 1; margin-top: 2px; }
     .in { height: 42px; }
     .p-cols { display: none; }
-    .prow { grid-template-columns: 1fr 1fr 1fr; grid-template-areas: "name name act" "group rate qty"; row-gap: 10px; padding: 12px 0; }
+    .prow { grid-template-columns: minmax(0, 1fr) 84px 64px; grid-template-areas: "name name act" "group rate qty"; row-gap: 10px; padding: 12px 0; }
     .prow .p-name { grid-area: name; } .prow .p-group { grid-area: group; } .prow .p-rate { grid-area: rate; } .prow .p-qty { grid-area: qty; } .prow .p-act { grid-area: act; }
     .prow .in { height: 40px; }
     .prow .p-act { align-self: start; }
+    .prow .p-act { display: none; }
+    .prow .p-more { display: inline-flex !important; grid-area: act; justify-self: end; align-self: center; }
     .pf .pk { display: block; margin-bottom: 4px; font: 500 10px/1.2 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
     .prow .p-name .pk { display: none; }
     .tabs { padding: 0 9px; }
@@ -912,6 +915,8 @@ let menuAnchor = null;
 function openMenu(anchor, items) {
   const m = $('menu');
   if (menuAnchor === anchor) return closeMenu();
+  const host = document.querySelector('dialog[open]') || document.body;
+  if (m.parentElement !== host) host.appendChild(m);
   m.innerHTML = '';
   for (const it of items) {
     if (it === '-') { m.appendChild(Object.assign(document.createElement('div'), { className: 'sep' })); continue; }
@@ -939,7 +944,7 @@ function closeMenu() { $('menu').classList.remove('on'); menuAnchor = null; }
 document.addEventListener('pointerdown', (e) => {
   if (menuAnchor && !$('menu').contains(e.target) && !menuAnchor.contains(e.target)) closeMenu();
 });
-addEventListener('scroll', () => menuAnchor && closeMenu(), { passive: true });
+addEventListener('scroll', () => menuAnchor && closeMenu(), { passive: true, capture: true });
 addEventListener('resize', () => menuAnchor && closeMenu());
 
 /* ---------- dialogs: on touch screens, don't pop the keyboard just because a dialog opened ---------- */
@@ -1095,7 +1100,8 @@ function renderPList() {
         <button type="button" class="icon" data-m="-1" title="Move up" aria-label="Move up" ${i ? '' : 'disabled'}>↑</button>
         <button type="button" class="icon" data-m="1" title="Move down" aria-label="Move down" ${i < work.length - 1 ? '' : 'disabled'}>↓</button>
         <button type="button" class="icon" data-del title="Delete" aria-label="Delete">×</button>
-      </div>`;
+      </div>
+      <button type="button" class="icon p-more" data-more aria-label="Preset options">⋯</button>`;
     row.querySelectorAll('[data-f]').forEach((inp) => (inp.value = p[inp.dataset.f] ?? ''));
     box.appendChild(row);
   });
@@ -1109,17 +1115,28 @@ $('plist').addEventListener('click', (e) => {
   const row = e.target.closest('.prow');
   if (!row) return;
   const i = +row.dataset.i;
-  const mv = e.target.closest('[data-m]');
+  const mv = e.target.closest('[data-m]'), more = e.target.closest('[data-more]');
   if (mv) {
-    const j = i + Number(mv.dataset.m);
-    [work[i], work[j]] = [work[j], work[i]];
-    renderPList();
+    const j = movePreset(i, Number(mv.dataset.m));
     $('plist').children[j]?.querySelector(`[data-m="${mv.dataset.m}"]:not(:disabled)`)?.focus();
   } else if (e.target.closest('[data-del]')) {
     work.splice(i, 1);
     renderPList();
+  } else if (more) {
+    openMenu(more, [
+      { label: 'Move up', disabled: !i, run: () => movePreset(i, -1) },
+      { label: 'Move down', disabled: i >= work.length - 1, run: () => movePreset(i, 1) },
+      '-',
+      { label: 'Delete preset', danger: true, run: () => { work.splice(i, 1); renderPList(); } },
+    ]);
   }
 });
+function movePreset(i, d) {
+  const j = i + d;
+  [work[i], work[j]] = [work[j], work[i]];
+  renderPList();
+  return j;
+}
 $('pAdd').onclick = () => {
   const lastGroup = work.at(-1)?.section || '';
   work.push({ section: lastGroup, name: '', rate: '', qty: '1' });
