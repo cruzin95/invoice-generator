@@ -1,5 +1,5 @@
 // Network-first with cache fallback: always fresh when online, still opens offline.
-const CACHE = 'invgen-v1';
+const CACHE = 'invgen-v2';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-180.png',
   'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
