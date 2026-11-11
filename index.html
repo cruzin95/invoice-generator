@@ -527,6 +527,7 @@
           <label for="s-acctname">Account name</label><input class="in" id="s-acctname" data-k="payment.wireAccountName">
           <label for="s-acct">Account #</label><input class="in mono" id="s-acct" data-k="payment.wireAccountNumber" inputmode="numeric" autocomplete="off">
           <label for="s-routing">Routing #</label><input class="in mono" id="s-routing" data-k="payment.wireRoutingNumber" inputmode="numeric" autocomplete="off">
+          <label for="s-wire">Wire #</label><input class="in mono" id="s-wire" data-k="payment.wireNumber" inputmode="numeric" autocomplete="off">
         </div>
         <h3>Other</h3>
         <div class="form">
@@ -699,7 +700,7 @@ document.fonts?.ready.then(autosizeAll);
 function renderPayment() {
   const p = co.payment || {};
   const apps = [['Zelle', p.zelle], ['Venmo', p.venmo], ['Cash App', p.cashapp], ['PayPal', p.paypal]].filter(([, v]) => v);
-  const bank = [['Bank', p.wireBank], ['Acct name', p.wireAccountName], ['Acct #', p.wireAccountNumber], ['Routing #', p.wireRoutingNumber]].filter(([, v]) => v);
+  const bank = [['Bank', p.wireBank], ['Acct name', p.wireAccountName], ['Acct #', p.wireAccountNumber], ['Routing #', p.wireRoutingNumber], ['Wire #', p.wireNumber]].filter(([, v]) => v);
   const box = $('payBlock');
   box.innerHTML = '';
   if (!apps.length && !bank.length && !p.other) {
