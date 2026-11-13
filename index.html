@@ -874,7 +874,7 @@ function newInvoice() {
   const today = isoDate(new Date());
   $('invDate').value = today;
   $('invNo').value = '';
-  nextNumberFor(today).then((n) => { $('invNo').value = n; saveDraft(); });
+  nextNumberFor(today).then((n) => { if (!$('invNo').value) $('invNo').value = n; saveDraft(); });
   $('terms').value = String(Number(co.paymentTermsDays) || 0);
   applyTerms();
   ['billTo', 'project', 'discount', 'paid'].forEach((f) => ($(f).value = ''));
@@ -902,11 +902,13 @@ function applyDraft(d) {
 const datePart = (iso) => (iso || isoDate(new Date())).slice(2).replace(/-/g, '');
 async function nextNumberFor(iso) {
   const base = `${co.invoicePrefix || ''}${datePart(iso)}-`;
-  const used = (await idb.allInvoices()).filter((i) => i.no.startsWith(base)).map((i) => parseInt(i.no.slice(base.length), 10) || 0);
+  let all = [];
+  try { all = await Promise.race([idb.allInvoices(), new Promise((r) => setTimeout(() => r([]), 1500))]); } catch {}
+  const used = (all || []).filter((i) => i && typeof i.no === 'string' && i.no.startsWith(base)).map((i) => parseInt(i.no.slice(base.length), 10) || 0);
   return base + String(Math.max(0, ...used) + 1).padStart(2, '0');
 }
 async function renumberIfUnsent() {
-  if (await idb.getInvoice($('invNo').value)) return;
+  if ($('invNo').value && await Promise.race([idb.getInvoice($('invNo').value), new Promise((r) => setTimeout(r, 1500))])) return;
   $('invNo').value = await nextNumberFor($('invDate').value);
   saveDraft();
 }
@@ -1689,6 +1691,8 @@ syncCur();
 {
   const d = store.get(LS_DRAFT);
   if (d) applyDraft(d); else newInvoice();
+  // A draft saved before a number was generated would otherwise stay blank forever
+  if (!$('invNo').value.trim()) nextNumberFor($('invDate').value || isoDate(new Date())).then((n) => { if (!$('invNo').value.trim()) { $('invNo').value = n; saveDraft(); } });
 }
 if (!co.name) openSettings('biz', true);
 idb.get('receipts').then((r) => { receipts = r || []; renderReceipts(); });
